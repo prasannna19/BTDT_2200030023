@@ -1,0 +1,61 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract ElectricityBillGenerator {
+    // Owner of the contract
+    address public owner;
+
+    // Rate per unit (in Ether)
+    uint256 public ratePerUnit;
+
+    // Event to log the bill generation
+    event BillGenerated(address indexed user, uint256 unitsUsed, uint256 billAmount);
+
+    // Modifier to restrict access to the contract owner
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only the owner can perform this action.");
+        _;
+    }
+
+    // Constructor: Set the contract owner and rate per unit
+    constructor(uint256 _ratePerUnit) {
+        owner = msg.sender;
+        ratePerUnit = _ratePerUnit;
+    }
+
+    // Function to update the rate per unit (onlyOwner)
+    function updateRatePerUnit(uint256 _ratePerUnit) public onlyOwner {
+        ratePerUnit = _ratePerUnit;
+    }
+
+    // Function to calculate the electricity bill
+    function calculateBill(uint256 previousReading, uint256 currentReading) public view returns (uint256) {
+        require(currentReading >= previousReading, "Current reading must be greater than or equal to the previous reading.");
+
+        uint256 unitsUsed = currentReading - previousReading;
+        uint256 billAmount = unitsUsed * ratePerUnit;
+
+        return billAmount;
+    }
+
+    // Function to generate the bill (payable function to simulate payment)
+    function generateBill(uint256 previousReading, uint256 currentReading) public payable {
+        uint256 unitsUsed = currentReading - previousReading;
+        uint256 billAmount = calculateBill(previousReading, currentReading);
+
+        require(msg.value >= billAmount, "Insufficient funds sent for the bill.");
+
+        // Emit the BillGenerated event
+        emit BillGenerated(msg.sender, unitsUsed, billAmount);
+    }
+
+    // Function to withdraw funds from the contract (onlyOwner)
+    function withdraw() public onlyOwner {
+        payable(owner).transfer(address(this).balance);
+    }
+
+    // Function to get the contract balance
+    function getContractBalance() public view returns (uint256) {
+        return address(this).balance;
+    }
+}
